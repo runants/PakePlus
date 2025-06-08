@@ -1,22 +1,721 @@
 <!DOCTYPE html>
-<html lang="en">
-    <head>
-        <meta charset="UTF-8" />
-        <link rel="stylesheet" href="styles.css" />
-        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-        <title>PakePlus App</title>
-        <script type="module" src="/main.js" defer></script>
-    </head>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="Content-Security-Policy" content="default-src * 'unsafe-inline' 'unsafe-eval'; script-src * 'unsafe-inline' 'unsafe-eval';">
+    <title>时间戳与日期时间转换工具</title>
+    <style>
+        :root {
+            --primary-color: #4361ee;
+            --secondary-color: #3f37c9;
+            --success-color: #4cc9f0;
+            --info-color: #4895ef;
+            --warning-color: #f72585;
+            --danger-color: #7209b7;
+            --light-color: #f8f9fa;
+            --dark-color: #212529;
+            --border-radius: 8px;
+            --box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            --transition: all 0.3s ease;
+        }
 
-    <body>
-        <main class="container">
-            <h1>Welcome to PakePlus</h1>
+        /* 确保输入框可以接收粘贴 */
+        input, textarea {
+            user-select: text !important;
+            -webkit-user-select: text !important;
+        }
 
-            <form class="row" id="greet-form">
-                <input id="greet-input" placeholder="Enter a name..." />
-                <button type="submit">Greet</button>
-            </form>
-            <p id="greet-msg"></p>
-        </main>
-    </body>
+        body {
+            font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+            max-width: 1068px;
+            margin: 0 auto;
+            /*padding: 20px;*/
+            background-color: #f8f9fa;
+            color: #333;
+            line-height: 1.6;
+            overflow: hidden; /* 禁止滚动条 */
+            position: fixed; /* 固定位置防止滚动 */
+            width: 100%; /* 确保宽度填满 */
+        }
+
+        .container {
+            background-color: white;
+            border-radius: var(--border-radius);
+            padding: 5px;
+            box-shadow: var(--box-shadow);
+        }
+
+        .converter-wrapper {
+            display: flex;
+            gap: 20px;
+        }
+
+        .converter-section {
+            flex: 1;
+            margin-bottom: 0;
+            padding: 20px;
+            border: 1px solid #e9ecef;
+            border-radius: var(--border-radius);
+            transition: var(--transition);
+            min-height: 100%;
+            box-sizing: border-box;
+        }
+
+        .converter-section:hover {
+            border-color: #dee2e6;
+            box-shadow: 0 2px 12px rgba(0, 0, 0, 0.05);
+        }
+
+        h2 {
+            margin: 0 0 15px 0;
+            color: var(--dark-color);
+            font-size: 18px;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+        }
+
+        h2:before {
+            content: "";
+            display: inline-block;
+            width: 4px;
+            height: 16px;
+            background-color: var(--primary-color);
+            margin-right: 10px;
+            border-radius: 2px;
+        }
+
+        .input-group {
+            display: flex;
+            margin-bottom: 15px;
+            align-items: center;
+            gap: 10px;
+        }
+
+        input[type="text"] {
+            width: 100%;
+            padding: 12px 15px;
+            border: 1px solid #ced4da;
+            border-radius: var(--border-radius);
+            font-size: 15px;
+            height: 42px;
+            box-sizing: border-box;
+            transition: var(--transition);
+        }
+
+        input[type="text"]:focus {
+            border-color: var(--primary-color);
+            box-shadow: 0 0 0 3px rgba(67, 97, 238, 0.15);
+            outline: none;
+        }
+
+        .control-row {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 15px;
+            flex-wrap: wrap;
+        }
+
+        button {
+            cursor: pointer;
+            font-weight: 500;
+            border-radius: var(--border-radius);
+            transition: var(--transition);
+            height: 42px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            padding: 0 18px;
+            font-size: 14px;
+            border: none;
+            white-space: nowrap;
+        }
+
+        .convert-btn {
+            background-color: var(--primary-color);
+            color: white;
+        }
+
+        .convert-btn:hover {
+            background-color: var(--secondary-color);
+            transform: translateY(-1px);
+        }
+
+        .convert-btn:active {
+            transform: translateY(0);
+        }
+
+        .form-select {
+            padding: 12px 35px 12px 15px;
+            border: 1px solid #ced4da;
+            border-radius: var(--border-radius);
+            font-size: 14px;
+            height: 42px;
+            background-color: white;
+            min-width: 120px;
+            appearance: none;
+            background-image: url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='6 9 12 15 18 9'%3e%3c/polyline%3e%3c/svg%3e");
+            background-repeat: no-repeat;
+            background-position: right 12px center;
+            background-size: 16px;
+            color: #495057;
+            transition: var(--transition);
+        }
+
+        .form-select:focus {
+            border-color: var(--primary-color);
+            box-shadow: 0 0 0 3px rgba(67, 97, 238, 0.15);
+            outline: none;
+        }
+
+        .result {
+            margin-top: 20px;
+        }
+
+        .result-label {
+            font-weight: 600;
+            margin-bottom: 8px;
+            display: block;
+            font-size: 14px;
+            color: #495057;
+        }
+
+        .result-input-group {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .result-input-group input {
+            width: 100%;
+            padding: 12px 15px;
+            border: 1px solid #e9ecef;
+            border-radius: var(--border-radius);
+            font-size: 15px;
+            height: 42px;
+            box-sizing: border-box;
+            background-color: #f8f9fa;
+            color: #495057;
+        }
+
+        .copy-btn {
+            background-color: var(--info-color);
+            color: white;
+            min-width: 80px;
+        }
+
+        .copy-btn:hover {
+            background-color: #3a7bc8;
+            transform: translateY(-1px);
+        }
+
+        .copy-btn:active {
+            transform: translateY(0);
+        }
+
+        .live-timestamp {
+            text-align: center;
+            padding: 20px;
+            background-color: #f1f3f5;
+            border-radius: var(--border-radius);
+            margin-bottom: 10px;
+            font-family: 'Roboto Mono', monospace;
+            font-size: 16px;
+            color: var(--dark-color);
+        }
+
+        .timestamp-value {
+            font-weight: bold;
+            color: var(--primary-color);
+            font-size: 18px;
+            letter-spacing: 0.5px;
+        }
+
+        .timestamp-controls {
+            margin-top: 15px;
+            display: flex;
+            justify-content: center;
+            gap: 10px;
+        }
+
+        .danger {
+            background-color: var(--warning-color);
+            color: white;
+        }
+
+        .danger:hover {
+            background-color: #e5177e;
+        }
+
+        .secondary {
+            background-color: var(--danger-color);
+            color: white;
+        }
+
+        .secondary:hover {
+            background-color: #5a08a0;
+        }
+
+        .toast {
+            position: fixed;
+            top: 25px;
+            left: 50%;
+            transform: translateX(-50%);
+            background-color: var(--primary-color);
+            color: white;
+            padding: 12px 24px;
+            border-radius: var(--border-radius);
+            box-shadow: var(--box-shadow);
+            z-index: 1000;
+            opacity: 0;
+            transition: var(--transition);
+            font-size: 14px;
+            font-weight: 500;
+        }
+
+        .toast.show {
+            opacity: 1;
+            top: 30px;
+        }
+
+        .toast.error {
+            background-color: var(--warning-color);
+        }
+
+        .datetime-controls {
+            display: flex;
+            gap: 10px;
+            margin-top: 15px;
+        }
+
+        .datetime-input-group {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            width: 100%;
+        }
+
+        .format-hint {
+            font-size: 13px;
+            color: #6c757d;
+            margin-top: 8px;
+            margin-left: 5px;
+        }
+
+        .error-message {
+            color: var(--warning-color);
+            font-size: 13px;
+            margin-top: 8px;
+            font-weight: 500;
+        }
+
+        @media (max-width: 768px) {
+            .converter-wrapper {
+                flex-direction: column;
+            }
+
+            .container {
+                padding: 15px;
+            }
+
+            .converter-section {
+                padding: 15px;
+            }
+
+            .control-row {
+                gap: 8px;
+            }
+
+            .form-select {
+                min-width: 100px;
+            }
+
+            input[type="text"] {
+                padding: 10px 12px;
+            }
+
+        }
+        .copyright {
+            text-align: center;
+            margin-top: 10px;
+            color: #6c757d;
+            font-size: 10px;
+            padding: 5px 0;
+        }
+    </style>
+</head>
+<body>
+<div class="toast" id="toast">复制成功!</div>
+
+<div class="container">
+    <div class="live-timestamp">
+        <div>当前时间戳: <span class="timestamp-value" id="liveTimestamp"></span></div>
+        <div class="timestamp-controls">
+            <button id="pauseBtn" class="danger" onclick="pauseTimestamp()">暂停</button>
+            <button id="resumeBtn" class="secondary" onclick="resumeTimestamp()" style="display: none;">继续</button>
+            <button class="copy-btn" onclick="copyTimestamp()">复制</button>
+        </div>
+    </div>
+
+    <div class="converter-wrapper">
+        <div class="converter-section">
+            <h2>时间戳转日期时间</h2>
+            <div class="input-group">
+                <input type="text" id="timestampInput" placeholder="输入时间戳" value="00000000000">
+            </div>
+
+            <div class="control-row">
+                <button class="convert-btn" onclick="convertTimestampToDateTime()">转换</button>
+                <select class="form-select" id="timestampUnit">
+                    <option value="ms" selected>毫秒(ms)</option>
+                    <option value="s">秒(s)</option>
+                </select>
+                <select class="form-select" id="timezone1">
+                    <option value="Asia/Shanghai" selected>Asia/Shanghai</option>
+                    <option value="UTC">UTC</option>
+                    <option value="America/New_York">America/New_York</option>
+                    <option value="Europe/London">Europe/London</option>
+                </select>
+            </div>
+
+            <div class="result">
+                <span class="result-label">转换结果</span>
+                <div class="result-input-group">
+                    <input type="text" id="datetimeResult" readonly>
+                    <button class="copy-btn" onclick="copyToClipboard('datetimeResult')">复制</button>
+                </div>
+            </div>
+        </div>
+
+        <div class="converter-section">
+            <h2>日期时间转时间戳</h2>
+            <div class="datetime-input-group">
+                <input type="text" id="datetimeTextInput" placeholder="YYYY-MM-DD HH:MM:SS">
+            </div>
+            <div class="format-hint">支持格式: YYYY-MM-DD HH:MM:SS</div>
+            <div id="datetimeError" class="error-message"></div>
+
+            <div class="control-row">
+                <button class="convert-btn" onclick="convertDateTimeToTimestamp()">转换</button>
+                <select class="form-select" id="outputUnit">
+                    <option value="ms" selected>毫秒(ms)</option>
+                    <option value="s">秒(s)</option>
+                </select>
+                <select class="form-select" id="timezone2">
+                    <option value="Asia/Shanghai" selected>Asia/Shanghai</option>
+                    <option value="UTC">UTC</option>
+                    <option value="America/New_York">America/New_York</option>
+                    <option value="Europe/London">Europe/London</option>
+                </select>
+                <button class="convert-btn" onclick="setCurrentDateTime()">Now</button>
+            </div>
+
+            <div class="result">
+                <span class="result-label">转换结果</span>
+                <div class="result-input-group">
+                    <input type="text" id="timestampResult" readonly>
+                    <button class="copy-btn" onclick="copyToClipboard('timestampResult')">复制</button>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="copyright">@ Author yurooby@163.com</div>
+</div>
+
+<script>
+    // 全局变量
+    let timestampInterval;
+    let isTimestampRunning = true;
+    let pausedTimestampValue = '';
+
+    // 初始化页面
+    document.addEventListener('DOMContentLoaded', function() {
+        // 设置默认日期时间为当前时间
+        setCurrentDateTime();
+
+        // 初始转换
+        convertTimestampToDateTime();
+        convertDateTimeToTimestamp();
+
+        // 启动实时时间戳
+        startTimestamp();
+
+        // 为手动输入框添加事件监听
+        document.getElementById('datetimeTextInput').addEventListener('input', function() {
+            document.getElementById('datetimeError').textContent = '';
+        });
+    });
+
+    // 设置当前日期时间
+    function setCurrentDateTime() {
+        const now = new Date();
+        const formattedDateTime = formatDateTimeForTextInput(now);
+        document.getElementById('datetimeTextInput').value = formattedDateTime;
+        document.getElementById('datetimeError').textContent = '';
+        // 自动转换
+        convertDateTimeToTimestamp();
+
+        // 显示操作成功的提示
+        // showToast('已设置为当前时间');
+    }
+
+    // 校验日期时间格式
+    function validateDateTimeFormat(datetimeStr) {
+        // 正则表达式校验 YYYY-MM-DD HH:MM:SS 格式
+        const regex = /^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}$/;
+        if (!regex.test(datetimeStr)) {
+            return false;
+        }
+
+        // 进一步校验各部分值是否合理
+        const parts = datetimeStr.split(/[- :]/);
+        const year = parseInt(parts[0]);
+        const month = parseInt(parts[1]);
+        const day = parseInt(parts[2]);
+        const hour = parseInt(parts[3]);
+        const minute = parseInt(parts[4]);
+        const second = parseInt(parts[5]);
+
+        if (month < 1 || month > 12) return false;
+        if (day < 1 || day > 31) return false;
+        if (hour < 0 || hour > 23) return false;
+        if (minute < 0 || minute > 59) return false;
+        if (second < 0 || second > 59) return false;
+
+        // 校验特定月份的天数
+        const daysInMonth = new Date(year, month, 0).getDate();
+        if (day > daysInMonth) return false;
+
+        return true;
+    }
+
+    // 显示提示消息
+    function showToast(message, isError = false) {
+        const toast = document.getElementById('toast');
+        toast.textContent = message;
+        toast.className = 'toast';
+        if (isError) {
+            toast.classList.add('error');
+        }
+        toast.classList.add('show');
+
+        setTimeout(() => {
+            toast.classList.remove('show');
+        }, 2000);
+    }
+
+    // 通用的复制到剪贴板函数
+    function copyToClipboard(elementId) {
+        const element = document.getElementById(elementId);
+        const text = element.value;
+
+        if (!text) {
+            showToast('没有内容可复制', true);
+            return;
+        }
+
+        // 创建一个临时的textarea元素
+        const textarea = document.createElement('textarea');
+        textarea.value = text;
+        textarea.style.position = 'fixed';
+        document.body.appendChild(textarea);
+        textarea.select();
+
+        try {
+            const successful = document.execCommand('copy');
+            if (successful) {
+                showToast('复制成功!');
+            } else {
+                showToast('复制失败!', true);
+            }
+        } catch (err) {
+            console.error('复制失败:', err);
+            showToast('复制失败!', true);
+        } finally {
+            document.body.removeChild(textarea);
+        }
+    }
+
+    // 复制时间戳
+    function copyTimestamp() {
+        const timestamp = isTimestampRunning ?
+            document.getElementById('liveTimestamp').textContent :
+            pausedTimestampValue;
+
+        // 创建一个临时的textarea元素
+        const textarea = document.createElement('textarea');
+        textarea.value = timestamp;
+        textarea.style.position = 'fixed';
+        document.body.appendChild(textarea);
+        textarea.select();
+
+        try {
+            const successful = document.execCommand('copy');
+            if (successful) {
+                showToast('复制成功!');
+            } else {
+                showToast('复制失败!', true);
+            }
+        } catch (err) {
+            console.error('复制失败:', err);
+            showToast('复制失败!', true);
+        } finally {
+            document.body.removeChild(textarea);
+        }
+    }
+
+    // 开始实时时间戳
+    function startTimestamp() {
+        if (timestampInterval) clearInterval(timestampInterval);
+        isTimestampRunning = true;
+        updateLiveTimestamp();
+        timestampInterval = setInterval(updateLiveTimestamp, 100);
+        document.getElementById('pauseBtn').style.display = 'inline-block';
+        document.getElementById('resumeBtn').style.display = 'none';
+    }
+
+    // 暂停实时时间戳
+    function pauseTimestamp() {
+        clearInterval(timestampInterval);
+        isTimestampRunning = false;
+        pausedTimestampValue = document.getElementById('liveTimestamp').textContent;
+        document.getElementById('pauseBtn').style.display = 'none';
+        document.getElementById('resumeBtn').style.display = 'inline-block';
+    }
+
+    // 继续实时时间戳
+    function resumeTimestamp() {
+        startTimestamp();
+    }
+
+    // 更新实时时间戳
+    function updateLiveTimestamp() {
+        const now = new Date();
+        const timestamp = now.getTime();
+        document.getElementById('liveTimestamp').textContent = timestamp;
+    }
+
+    // 时间戳转日期时间
+    function convertTimestampToDateTime() {
+        const timestampInput = document.getElementById('timestampInput').value.trim();
+        const unit = document.getElementById('timestampUnit').value;
+        const timezone = document.getElementById('timezone1').value;
+
+        if (!timestampInput) {
+            showToast('请输入时间戳', true);
+            return;
+        }
+
+        let timestamp = parseFloat(timestampInput);
+        if (isNaN(timestamp)) {
+            showToast('请输入有效的时间戳', true);
+            return;
+        }
+
+        // 根据单位调整时间戳
+        if (unit === 's') {
+            timestamp *= 1000;
+        }
+
+        const date = new Date(timestamp);
+
+        // 使用自定义函数格式化日期时间为 年-月-日 时:分:秒 格式
+        const formattedDateTime = formatDateTime(date, timezone);
+        document.getElementById('datetimeResult').value = formattedDateTime;
+    }
+
+    // 日期时间转时间戳
+    function convertDateTimeToTimestamp() {
+        const datetimeInput = document.getElementById('datetimeTextInput').value.trim();
+        const timezone = document.getElementById('timezone2').value;
+        const outputUnit = document.getElementById('outputUnit').value;
+        const errorElement = document.getElementById('datetimeError');
+
+        if (!datetimeInput) {
+            errorElement.textContent = '请输入日期时间';
+            return;
+        }
+
+        // 校验日期时间格式
+        if (!validateDateTimeFormat(datetimeInput)) {
+            errorElement.textContent = '格式不正确，请使用 YYYY-MM-DD HH:MM:SS 格式';
+            return;
+        }
+
+        // 解析输入的日期时间
+        const [datePart, timePart] = datetimeInput.split(' ');
+        const [year, month, day] = datePart.split('-');
+        const [hours, minutes, seconds] = timePart.split(':');
+
+        // 创建Date对象，考虑时区
+        const dateStr = `${year}-${month}-${day}T${hours}:${minutes}:${seconds}`;
+        const parsedDate = new Date(dateStr);
+
+        // 验证日期是否有效
+        if (isNaN(parsedDate.getTime())) {
+            errorElement.textContent = '请输入有效的日期时间';
+            return;
+        }
+
+        // 计算时间戳时考虑时区偏移
+        const timezoneOffset = getTimezoneOffset(parsedDate, timezone);
+        let timestamp = parsedDate.getTime() + timezoneOffset;
+
+        // 根据输出单位调整
+        if (outputUnit === 's') {
+            timestamp = Math.floor(timestamp / 1000);
+        }
+
+        document.getElementById('timestampResult').value = timestamp;
+        errorElement.textContent = '';
+    }
+
+    // 辅助函数：格式化日期时间为 YYYY-MM-DD HH:MM:SS 格式
+    function formatDateTimeForTextInput(date) {
+        const year = date.getFullYear();
+        const month = String(date.getMonth() + 1).padStart(2, '0');
+        const day = String(date.getDate()).padStart(2, '0');
+        const hours = String(date.getHours()).padStart(2, '0');
+        const minutes = String(date.getMinutes()).padStart(2, '0');
+        const seconds = String(date.getSeconds()).padStart(2, '0');
+
+        return `${year}-${month}-${day} ${hours}:${minutes}:${seconds}`;
+    }
+
+    // 辅助函数：格式化日期时间为 年-月-日 时:分:秒 格式
+    function formatDateTime(date, timezone) {
+        // 使用Intl.DateTimeFormat获取指定时区的各部分值
+        const formatter = new Intl.DateTimeFormat('zh-CN', {
+            timeZone: timezone,
+            year: 'numeric',
+            month: '2-digit',
+            day: '2-digit',
+            hour: '2-digit',
+            minute: '2-digit',
+            second: '2-digit',
+            hour12: false
+        });
+
+        const parts = formatter.formatToParts(date);
+        const year = parts.find(p => p.type === 'year').value;
+        const month = parts.find(p => p.type === 'month').value;
+        const day = parts.find(p => p.type === 'day').value;
+        const hour = parts.find(p => p.type === 'hour').value;
+        const minute = parts.find(p => p.type === 'minute').value;
+        const second = parts.find(p => p.type === 'second').value;
+
+        return `${year}-${month}-${day} ${hour}:${minute}:${second}`;
+    }
+
+    // 辅助函数：获取指定时区的偏移量（毫秒）
+    function getTimezoneOffset(date, timezone) {
+        // 获取本地时区与目标时区的分钟差
+        const localOffset = date.getTimezoneOffset(); // 本地与UTC的分钟差
+        const targetOffset = new Date(date.toLocaleString('en-US', { timeZone: timezone })).getTimezoneOffset();
+        return (targetOffset - localOffset) * 60 * 1000;
+    }
+</script>
+</body>
 </html>
